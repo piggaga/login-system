@@ -165,3 +165,4 @@ function updateLoginHistory(user, ip) {
 window.onload = function() {
     initDB();
 };
+
