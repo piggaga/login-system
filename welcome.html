@@ -10,7 +10,6 @@
 <body>
     <div class="container fade-in">
         <h1>歡迎 <span id="welcomeUsername"></span> 使用本系統</h1>
-        <p>密碼：<span id="welcomePassword"></span></p>
         <p>註冊時間：<span id="welcomeRegTime"></span></p>
         <h2>登錄歷史</h2>
         <ul id="loginHistory"></ul>
@@ -32,7 +31,6 @@
             let currentUser = JSON.parse(sessionStorage.getItem("currentUser"));
             if (currentUser) {
                 document.getElementById("welcomeUsername").textContent = currentUser.username;
-                document.getElementById("welcomePassword").textContent = currentUser.password;
                 document.getElementById("welcomeRegTime").textContent = currentUser.regTime;
                 displayLoginHistory(currentUser.loginHistory);
             } else {
@@ -69,9 +67,15 @@
                 return;
             }
             let currentUser = JSON.parse(sessionStorage.getItem("currentUser"));
-            currentUser.password = newPassword;
-            sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
-            updatePasswordInDB(currentUser);
+            
+            // 哈希化新密碼
+            hashPassword(newPassword).then(hashedPassword => {
+                currentUser.password = hashedPassword;
+                sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
+                updatePasswordInDB(currentUser);
+            }).catch(error => {
+                showError("加密密碼時出錯。");
+            });
         }
 
         function updatePasswordInDB(user) {

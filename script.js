@@ -34,6 +34,18 @@ function hideError() {
     errorDiv.classList.add("hidden");
 }
 
+function hashPassword(password) {
+    // 使用SHA-256哈希函數進行密碼加密
+    const encoder = new TextEncoder();
+    return crypto.subtle.digest('SHA-256', encoder.encode(password))
+        .then(hash => {
+            // 將哈希值轉換為十六進制字符串
+            return Array.from(new Uint8Array(hash))
+                .map(byte => byte.toString(16).padStart(2, '0'))
+                .join('');
+        });
+}
+
 function register() {
     hideError();
 
@@ -52,19 +64,23 @@ function register() {
 
     let regTime = new Date().toLocaleString();
 
-    let transaction = db.transaction(["users"], "readwrite");
-    let objectStore = transaction.objectStore("users");
+    hashPassword(password).then(hashedPassword => {
+        let transaction = db.transaction(["users"], "readwrite");
+        let objectStore = transaction.objectStore("users");
 
-    let request = objectStore.add({ username: username, password: password, regTime: regTime, loginHistory: [] });
+        let request = objectStore.add({ username: username, password: hashedPassword, regTime: regTime, loginHistory: [] });
 
-    request.onsuccess = function(event) {
-        console.log("註冊成功！");
-        window.location.href = "login.html"; // 導向登入頁面
-    };
+        request.onsuccess = function(event) {
+            console.log("註冊成功！");
+            window.location.href = "login.html"; // 導向登入頁面
+        };
 
-    request.onerror = function(event) {
-        showError("註冊失敗：用戶名可能已被使用。");
-    };
+        request.onerror = function(event) {
+            showError("註冊失敗：用戶名可能已被使用。");
+        };
+    }).catch(error => {
+        showError("加密密碼時出錯。");
+    });
 }
 
 function login() {
@@ -83,29 +99,33 @@ function login() {
         return;
     }
 
-    let transaction = db.transaction(["users"], "readonly");
-    let objectStore = transaction.objectStore("users");
-    let request = objectStore.get(username);
+    hashPassword(password).then(hashedPassword => {
+        let transaction = db.transaction(["users"], "readonly");
+        let objectStore = transaction.objectStore("users");
+        let request = objectStore.get(username);
 
-    request.onsuccess = function(event) {
-        let user = event.target.result;
-        if (user && user.password === password) {
-            console.log("登錄成功！");
-            getIP().then(ip => {
-                updateLoginHistory(user, ip);
-                sessionStorage.setItem("currentUser", JSON.stringify(user)); // 存儲當前用戶信息
-                window.location.href = "welcome.html"; // 導向歡迎頁面
-            }).catch(error => {
-                showError("無法獲取IP地址，請稍後再試。");
-            });
-        } else {
-            showError("登錄失敗：用戶名或密碼錯誤。");
-        }
-    };
+        request.onsuccess = function(event) {
+            let user = event.target.result;
+            if (user && user.password === hashedPassword) {
+                console.log("登錄成功！");
+                getIP().then(ip => {
+                    updateLoginHistory(user, ip);
+                    sessionStorage.setItem("currentUser", JSON.stringify(user)); // 存儲當前用戶信息
+                    window.location.href = "welcome.html"; // 導向歡迎頁面
+                }).catch(error => {
+                    showError("無法獲取IP地址，請稍後再試。");
+                });
+            } else {
+                showError("登錄失敗：用戶名或密碼錯誤。");
+            }
+        };
 
-    request.onerror = function(event) {
-        showError("登錄失敗，請稍後再試。");
-    };
+        request.onerror = function(event) {
+            showError("登錄失敗，請稍後再試。");
+        };
+    }).catch(error => {
+        showError("加密密碼時出錯。");
+    });
 }
 
 function getIP() {
