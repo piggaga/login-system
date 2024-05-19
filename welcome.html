@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歡迎界面</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="container fade-in">
+        <h1>歡迎 <span id="welcomeUsername"></span> 使用本系統</h1>
+        <p>密碼：<span id="welcomePassword"></span></p>
+        <p>註冊時間：<span id="welcomeRegTime"></span></p>
+        <h2>登錄歷史</h2>
+        <ul id="loginHistory"></ul>
+        <button onclick="logout()">登出</button>
+        <button onclick="showChangePasswordForm()">更改密碼</button>
+
+        <div id="changePasswordForm">
+            <h3>更改密碼</h3>
+            <input type="password" id="newPassword" placeholder="輸入新密碼">
+            <input type="password" id="confirmPassword" placeholder="確認新密碼">
+            <button onclick="changePassword()">提交</button>
+            <p id="error" class="fade-in"></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        window.onload = function() {
+            let currentUser = JSON.parse(sessionStorage.getItem("currentUser"));
+            if (currentUser) {
+                document.getElementById("welcomeUsername").textContent = currentUser.username;
+                document.getElementById("welcomePassword").textContent = currentUser.password;
+                document.getElementById("welcomeRegTime").textContent = currentUser.regTime;
+                displayLoginHistory(currentUser.loginHistory);
+            } else {
+                window.location.href = "login.html";
+            }
+        };
+
+        function displayLoginHistory(loginHistory) {
+            let list = document.getElementById("loginHistory");
+            list.innerHTML = "";
+            loginHistory.forEach(function(loginRecord) {
+                let listItem = document.createElement("li");
+                let loginTime = moment(loginRecord.time, "YYYY/MM/DD A hh:mm:ss").toISOString();
+                if (loginTime === "Invalid date") {
+                    console.error(`無法解析日期時間：${loginRecord.time}`);
+                    listItem.textContent = "日期時間格式錯誤";
+                } else {
+                    let formattedTime = new Date(loginTime).toLocaleString();
+                    listItem.textContent = `登錄時間：${formattedTime}，IP位址：${loginRecord.ip}`;
+                }
+                list.appendChild(listItem);
+            });
+        }
+
+        function showChangePasswordForm() {
+            document.getElementById("changePasswordForm").style.display = "block";
+        }
+
+        function changePassword() {
+            let newPassword = document.getElementById("newPassword").value;
+            let confirmPassword = document.getElementById("confirmPassword").value;
+            if (newPassword !== confirmPassword) {
+                document.getElementById("error").textContent = "密碼不匹配，請重新輸入。";
+                return;
+            }
+            let currentUser = JSON.parse(sessionStorage.getItem("currentUser"));
+            currentUser.password = newPassword;
+            sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
+            updatePasswordInDB(currentUser);
+        }
+
+        function updatePasswordInDB(user) {
+            let request = indexedDB.open("loginDB");
+
+            request.onerror = function(event) {
+                showError("無法打開數據庫：" + event.target.errorCode);
+            };
+
+            request.onsuccess = function(event) {
+                let db = event.target.result;
+                let transaction = db.transaction(["users"], "readwrite");
+                let objectStore = transaction.objectStore("users");
+                let updateRequest = objectStore.put(user);
+
+                updateRequest.onsuccess = function(event) {
+                    console.log("密碼更新成功。");
+                    document.getElementById("error").textContent = "密碼更新成功。";
+                };
+
+                updateRequest.onerror = function(event) {
+                    showError("更新密碼失敗：" + event.target.errorCode);
+                };
+            };
+        }
+
+        function logout() {
+            sessionStorage.removeItem("currentUser");
+            window.location.href = "login.html";
+        }
+
+        function showError(message) {
+            document.getElementById("error").textContent = message;
+        }
+    </script>
+</body>
+</html>
