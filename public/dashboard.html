@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用者儀表板</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>使用者儀表板</h1>
+        <div class="welcome-message">
+            <h2>歡迎, <span id="username">大雞雞</span></h2>
+            <p>您的電子郵件: <span id="email">tseng.victor.sv@gmail.com</span></p>
+            <p>您的UID: <span id="uid">66a6477be70e7aafd3f1ab1c</span></p>
+        </div>
+        <button id="logout">登出</button>
+
+        <div class="change-password">
+            <h3>變更密碼</h3>
+            <label for="currentPassword">當前密碼</label>
+            <input type="password" id="currentPassword">
+            <label for="newPassword">新密碼</label>
+            <input type="password" id="newPassword">
+            <button id="changePassword">變更密碼</button>
+        </div>
+
+
+
+        <div class="delete-account">
+            <h3>刪除帳號</h3>
+            <label for="deletePassword">密碼</label>
+            <input type="password" id="deletePassword">
+            <button id="deleteAccount">刪除帳號</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
